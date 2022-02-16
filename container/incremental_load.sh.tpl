@@ -19,14 +19,19 @@ set -eu
 # This is a generated file that loads all docker layers built by "docker_build".
 
 function guess_runfiles() {
+  if [[ "%{action_run}" == "True" ]]; then
+    # The script is running as an action
+    pwd
+  else
     if [ -d ${BASH_SOURCE[0]}.runfiles ]; then
-        # Runfiles are adjacent to the current script.
-        echo "$( cd ${BASH_SOURCE[0]}.runfiles && pwd )"
+      # Runfiles are adjacent to the current script.
+      echo "$( cd ${BASH_SOURCE[0]}.runfiles && pwd )"
     else
-        # The current script is within some other script's runfiles.
-        mydir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-        echo $mydir | sed -e 's|\(.*\.runfiles\)/.*|\1|'
+      # The current script is within some other script's runfiles.
+      mydir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+      echo $mydir | sed -e 's|\(.*\.runfiles\)/.*|\1|'
     fi
+  fi
 }
 
 RUNFILES="${PYTHON_RUNFILES:-$(guess_runfiles)}"
@@ -35,8 +40,8 @@ DOCKER="%{docker_tool_path}"
 DOCKER_FLAGS="%{docker_flags}"
 
 if [[ -z "${DOCKER}" ]]; then
-    echo >&2 "error: docker not found; do you need to manually configure the docker toolchain?"
-    exit 1
+  echo >&2 "error: docker not found; do you need to manually configure the docker toolchain?"
+  exit 1
 fi
 
 # Create temporary files in which to record things to clean up.
@@ -130,7 +135,7 @@ function import_config() {
   local tmp_dir="$(mktemp -d)"
   echo "${tmp_dir}" >> "${TEMP_FILES}"
 
-  cd "${tmp_dir}"
+  pushd "${tmp_dir}" >/dev/null
 
   # Docker elides layer reads from the tarball when it
   # already has a copy of the layer with the same basis
@@ -206,6 +211,8 @@ EOF
   # and then streaming exactly the layers we've established are
   # needed into the Docker daemon.
   tar cPh "${MISSING[@]}" | "${DOCKER}" ${DOCKER_FLAGS} load
+
+  popd >/dev/null
 }
 
 function tag_layer() {
@@ -273,10 +280,6 @@ if [[ "%{run}" == "True" ]]; then
       esac
   done
 
-  # Once we've loaded the images for all layers, we no longer need the temporary files on disk.
-  # We can clean up before we exec docker, since the exit handler will no longer run.
-  cleanup
-
   # This generated and injected by docker_*.
-  eval exec %{run_statement} "${docker_args[@]}" "%{run_tag}" "${container_args[@]:-}"
+  id=$(%{run_statement} "${docker_args[@]}" "%{run_tag}" "${container_args[@]}")
 fi
