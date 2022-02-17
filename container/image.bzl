@@ -747,9 +747,9 @@ _attrs = dicts.add(_layer.attrs, {
 
         This field supports stamp variables.""",
     ),
-    "_allowlist_function_transition": attr.label(
-        default = "@bazel_tools//tools/allowlists/function_transition_allowlist",
-    ),
+    # "_allowlist_function_transition": attr.label(
+    #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist",
+    # ),
     "_digester": attr.label(
         default = "//container/go/cmd/digester",
         cfg = "host",
@@ -795,7 +795,7 @@ image = struct(
     attrs = _attrs,
     outputs = _outputs,
     implementation = _impl,
-    cfg = _image_transition,
+    cfg = None,
 )
 
 container_image_ = rule(
